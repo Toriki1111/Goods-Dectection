@@ -1,62 +1,64 @@
 # CV_AI — Grocerystuffs Scanner
 
-Đồ án nhận diện sản phẩm bằng **YOLO26l-seg**, sử dụng webcam máy tính hoặc camera
-điện thoại Android. Chương trình hiển thị bounding box, mask của từng vật phẩm,
-đếm số lượng và tính tổng tiền theo bảng giá cấu hình.
+A product recognition project built with **YOLO26l-seg**, using a computer webcam
+or an Android phone camera. The application displays a bounding box and instance
+mask for each detected item, counts products, and calculates a total using a
+configurable price list.
 
-Model hiện tại có **31 lớp sản phẩm**. Dữ liệu được gán nhãn trên Ultralytics,
-export thành NDJSON rồi chuẩn bị và train trên Google Colab.
+The current model has **31 product classes**. Images are labeled in Ultralytics,
+exported as NDJSON, then prepared and used for training on Google Colab.
 
-## Video demo
+## Demo videos
 
-> **[TODO VIDEO 01 — DEMO CHÍNH, 30–60 GIÂY]**
+> **[TODO VIDEO 01 — MAIN DEMO, 30–60 SECONDS]**
 >
-> **Chèn link video ngay dưới ghi chú này.** Quay cả vùng camera và bảng tính tiền:
-> đặt 2–3 sản phẩm có trong model vào khung, giữ yên đến lần cập nhật 10 giây,
-> rồi thêm hoặc lấy bớt một món và chờ lần cập nhật tiếp theo.
-> Cần thấy rõ box/mask, tên sản phẩm, số lượng, đơn giá, thành tiền và tổng tiền.
-> Đối chiếu phép tính với `cam_test/prices.json` tại thời điểm quay.
+> **Insert the video link below this note.** Record both the camera view and the
+> pricing panel. Place 2–3 supported products in view, hold them still until the
+> 10-second update, then add or remove an item and wait for the next update.
+> Show the boxes/masks, product names, quantities, unit prices, line totals, and
+> grand total clearly. Verify the calculation against `cam_test/prices.json`
+> using the prices configured when recording.
 
-<!-- TODO VIDEO 01: thay ghi chú bên trên bằng link video demo đã quay. -->
+<!-- TODO VIDEO 01: replace the note above with a link to the recorded main demo. -->
 
-## Chức năng hiện có
+## Features
 
-- Nhận diện nhiều sản phẩm trong cùng khung hình, hiển thị box và mask.
-- Bảng số lượng, đơn giá, thành tiền từng loại và tổng tiền theo VND.
-- Bảng hiển thị ngay ở lần nhận diện đầu tiên, sau đó cập nhật mỗi 10 giây.
-- Nhận video từ webcam hoặc luồng DroidCam qua Wi-Fi.
-- Với điện thoại, nhận ảnh liên tục và chỉ giữ khung mới nhất cho YOLO để
-  hạn chế độ trễ do khung cũ bị tồn đọng.
-- Train, lưu checkpoint, resume và đánh giá box/mask trên Colab.
+- Detect multiple products in one frame and display their boxes and masks.
+- Show quantities, unit prices, line totals, and a grand total in VND.
+- Populate the pricing panel on the first detection, then refresh every 10 seconds.
+- Receive video from a webcam or a DroidCam stream over Wi-Fi.
+- Continuously read phone video and keep only the latest pending frame for YOLO
+  to reduce delays caused by a backlog of older frames.
+- Train, save checkpoints, resume interrupted runs, and evaluate boxes/masks on Colab.
 
-**Mỗi lần quét là một snapshot của các vật đang được nhận diện.** Kết quả mới thay
-kết quả trước, không cộng dồn vật qua nhiều khung hình. Box/mask cập nhật theo
-từng lần suy luận; bảng tiền giữ nguyên giữa hai lần quét nên có thể tạm khác
-các vật đang xuất hiện trong hình trực tiếp.
+**Each scan is a snapshot of the items currently detected.** A new snapshot
+replaces the previous one; counts do not accumulate across frames. Boxes and
+masks update with every inference, while the pricing panel stays unchanged
+between scans. The panel may therefore temporarily differ from the live view.
 
-Chương trình camera hiện không ghi video hoặc lưu frame xuống ổ đĩa.
+The camera application does not currently record video or save frames to disk.
 
-## Luồng hoạt động
+## How it works
 
 ```mermaid
 flowchart LR
-    A[Webcam hoặc camera Android] --> B[Nhận khung hình]
+    A[Webcam or Android camera] --> B[Read frames]
     B --> C[YOLO26l-seg]
-    C --> D[Hiển thị box và mask]
-    C --> E[Chốt số lượng mỗi 10 giây]
-    P[prices.json] --> F[Tính thành tiền và tổng tiền]
+    C --> D[Display boxes and masks]
+    C --> E[Update counts every 10 seconds]
+    P[prices.json] --> F[Calculate line totals and grand total]
     E --> F
 ```
 
-Phần nhận video điện thoại giữ một khung mới nhất đang chờ, thay thế khi ảnh mới
-đến. Cách này giảm thời gian chờ ảnh cũ; tốc độ suy luận của model vẫn phụ thuộc
-phần cứng, kích thước đầu vào và nội dung ảnh.
+Phone video capture keeps a single pending frame, replacing it whenever a newer
+frame arrives. This reduces waiting for old frames; model inference speed still
+depends on the hardware, input size, and image content.
 
-## Cấu trúc dự án
+## Project structure
 
 ```text
 CV_AI/
-├── Detection/                     # 9 phần code tương ứng các ô Colab
+├── Detection/                     # 9 scripts corresponding to the Colab cells
 │   ├── 00_install_dependencies.py
 │   ├── 01_setup_drive.py
 │   ├── 02_prepare_dataset.py
@@ -68,100 +70,106 @@ CV_AI/
 │   ├── 08_list_checkpoints.py
 │   └── README.md
 ├── cam_test/
-│   ├── webcam.py                  # Nhận video, suy luận, đếm và tính tiền
-│   ├── prices.json                # Đơn giá VND theo tên lớp
-│   ├── run.cmd                    # Chạy trên Windows
-│   └── run_phone.cmd              # Chạy với IP điện thoại
-├── Grocerystuffs_Train.ipynb       # Notebook local lưu trước khi tách file
-├── CommonThings_Resume.ipynb      # Notebook CommonThings cũ
-├── prepare_commonthings.py        # Công cụ CommonThings cũ
+│   ├── webcam.py                  # Video capture, inference, counting, and pricing
+│   ├── prices.json                # Unit prices in VND, keyed by class name
+│   ├── run.cmd                    # Windows launcher
+│   └── run_phone.cmd              # Launcher accepting the phone IP address
+├── Grocerystuffs_Train.ipynb       # Local notebook saved before splitting into scripts
+├── CommonThings_Resume.ipynb      # Legacy CommonThings notebook
+├── prepare_commonthings.py        # Legacy CommonThings utility
 ├── requirements.txt
 ├── .gitignore
 └── README.md
 ```
 
-Model `best_grocery.pt`, ảnh, NDJSON và kết quả train được lưu riêng, không kèm
-repository do `.gitignore`. Người clone dự án cần tự cung cấp model/dataset.
-Các công cụ CommonThings cũ không phải luồng train Grocerystuffs hiện tại.
+The `best_grocery.pt` model, images, NDJSON files, and training outputs are stored
+separately and excluded from the repository by `.gitignore`. Users cloning the
+project must provide their own model/dataset. The legacy CommonThings tools are
+separate from the current Grocerystuffs training workflow.
 
-## Cài đặt trên máy tính
+## Local setup
 
-Luồng demo hiện được dùng trên **Windows với Python 3.12**. Mở terminal tại
-thư mục gốc dự án và cài thư viện từ file chung:
+The current demo workflow runs on **Windows with Python 3.12**. Open a terminal
+at the project root and install dependencies from the shared requirements file:
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-Đặt checkpoint segmentation đã train tại `CV_AI/best_grocery.pt`.
-Đây là model sản phẩm riêng; weights COCO gốc không thay thế được danh sách
-31 lớp đã gán nhãn. Có thể tải `best.pt` sau khi train trên Colab rồi đổi tên
-local thành `best_grocery.pt`.
+Place the trained segmentation checkpoint at `CV_AI/best_grocery.pt`.
+This is a custom product model; the original COCO weights do not provide the
+same 31 labeled product classes. After training on Colab, download `best.pt`
+and rename the local copy to `best_grocery.pt`.
 
-## Chạy webcam máy tính
+## Run with a computer webcam
 
 ```powershell
 .\cam_test\run.cmd --camera 0
 ```
 
-Nhấn **Q** hoặc **Escape** trong cửa sổ camera để thoát. Nếu có nhiều webcam,
-chọn đúng chỉ số bằng `--camera`; số 1 không mặc định là camera điện thoại.
+Press **Q** or **Escape** in the camera window to exit. If multiple webcams are
+available, select the appropriate index with `--camera`. Index 1 does not
+automatically refer to the phone camera.
 
-| Tham số | Mặc định | Ý nghĩa |
+| Argument | Default | Description |
 |---|---|---|
-| `--camera` | `0` | Chỉ số webcam hoặc URL video HTTP/HTTPS |
-| `--model` | `best_grocery.pt` ở gốc dự án | Checkpoint suy luận |
-| `--imgsz` | `480` | Kích thước đầu vào YOLO |
-| `--conf` | `0.25` | Ngưỡng confidence cho nhận diện và bảng đếm |
-| `--device` | `cpu` | Thiết bị suy luận |
-| `--prices` | `cam_test/prices.json` | File đơn giá |
+| `--camera` | `0` | Webcam index or HTTP/HTTPS video URL |
+| `--model` | `best_grocery.pt` at the project root | Inference checkpoint |
+| `--imgsz` | `480` | YOLO input size |
+| `--conf` | `0.25` | Confidence threshold for detections and counts |
+| `--device` | `cpu` | Inference device |
+| `--prices` | `cam_test/prices.json` | Unit price file |
 
-Ví dụ đổi kích thước đầu vào và ngưỡng nhận diện:
+To change the input size and confidence threshold:
 
 ```powershell
 .\cam_test\run.cmd --camera 0 --imgsz 640 --conf 0.35
 ```
 
-Đầu vào lớn hơn có thể giữ thêm chi tiết nhưng tốn thời gian xử lý. Mặc định
-chạy CPU; chỉ dùng `--device 0` khi PyTorch CUDA và GPU đã hoạt động.
+Larger inputs may preserve more detail but require more processing time. The
+application uses the CPU by default. Use `--device 0` only when a CUDA-enabled
+PyTorch installation and a compatible GPU are working.
 
-## Camera Android qua Wi-Fi
+## Use an Android camera over Wi-Fi
 
-1. Mở app DroidCam trên điện thoại và kết nối cùng mạng với máy tính.
-2. Lấy địa chỉ IP và cổng đang hiển thị trong app.
-3. Thoát DroidCam Client trên máy tính bằng **File → Exit** nếu đang mở để giải
-   phóng luồng cho Python; đóng cửa sổ có thể vẫn để Client chạy nền.
-4. Giữ app điện thoại hoạt động và chạy lệnh với IP thực tế:
+1. Open DroidCam on the phone and connect it to the same network as the computer.
+2. Find the IP address and port displayed in the phone app.
+3. If DroidCam Client is running on the computer, quit it through **File → Exit**
+   to release the stream for Python. Closing its window may leave it running
+   in the background.
+4. Keep the phone app active and run the command with the actual phone IP:
 
 ```powershell
 .\cam_test\run_phone.cmd PHONE_IP
 ```
 
-IP trên là ví dụ. Script tự thêm cổng `4747` và đường dẫn `/video`.
-Để chọn cổng khác, truyền URL đầy đủ, thay IP và cổng bằng thông số trong app:
+Replace `PHONE_IP` with the address displayed in the app. The script adds port
+`4747` and the `/video` path automatically. To use another port, pass the full
+URL and replace the address and port with the values shown in the app:
 
 ```powershell
 .\cam_test\run.cmd --camera "http://PHONE_IP:4747/video"
 ```
 
-Điện thoại cung cấp hình; model chạy và hiển thị kết quả trên máy tính. Luồng
-này không cần OBS. Khi IP đổi, chỉ thay IP trong lệnh, không sửa code.
+The phone supplies the video; the model runs and displays results on the
+computer. This workflow does not require OBS. If the phone IP changes, update
+the command rather than editing the code.
 
-> **[TODO VIDEO 02 — CAMERA ĐIỆN THOẠI, 15–30 GIÂY]**
+> **[TODO VIDEO 02 — PHONE CAMERA, 15–30 SECONDS]**
 >
-> **Chèn link video ngay dưới ghi chú này.** Quay thấy cả điện thoại và màn hình
-> máy tính: di chuyển một sản phẩm qua lại rồi đưa vào khung để YOLO nhận diện.
-> Mục đích là cho thấy máy tính dùng hình từ điện thoại và phản hồi khi vật di chuyển.
-> Nếu chưa đo độ trễ, không ghi con số latency hoặc FPS cố định vào video.
+> **Insert the video link below this note.** Record both the phone and computer
+> screen. Move a product back and forth, then place it in view for YOLO to detect.
+> Show that the computer receives the phone video and responds to movement.
+> Do not state a fixed latency or FPS in the video unless it has been measured.
 
-<!-- TODO VIDEO 02: thay ghi chú bên trên bằng link video camera điện thoại. -->
+<!-- TODO VIDEO 02: replace the note above with a link to the phone camera demo. -->
 
-## Giá sản phẩm và cách tính tiền
+## Product prices and billing
 
-[cam_test/prices.json](cam_test/prices.json) là nguồn đơn giá hiện tại. Key phải
-khớp chính xác tên lớp model trả về, giá là số nguyên không âm theo VND.
-Ví dụ trích từ cấu hình hiện tại:
+[cam_test/prices.json](cam_test/prices.json) is the source of current unit prices.
+Each key must exactly match a model class name, and each price must be a
+non-negative integer in VND. An excerpt from the current configuration:
 
 ```json
 {
@@ -170,44 +178,46 @@ Ví dụ trích từ cấu hình hiện tại:
 }
 ```
 
-Hai lon Coca và một lon Pepsi được nhận diện tại lần quét sẽ cho tổng:
-`2 × 12.000 + 1 × 15.000 = 39.000 VND`.
+If a scan detects two Coca cans and one Pepsi can, the total is:
+`2 × 12,000 + 1 × 15,000 = 39,000 VND`.
 
-- Sửa JSON rồi khởi động lại cam test để nạp giá mới.
-- Món chưa có giá vẫn được đếm, hiện `NO PRICE` và không cộng vào tổng.
-- Dòng `Unpriced` cho biết số vật chưa có giá. Tổng có thể chỉ là tiền của những
-  món đã gán giá, không phải tiền của toàn bộ vật xuất hiện trong hình.
-- Khi lần quét mới không nhận diện vật nào, số lượng và tổng tiền về 0.
+- Edit the JSON file and restart the camera application to load new prices.
+- Items without a configured price are still counted, display `NO PRICE`, and
+  are excluded from the total.
+- `Unpriced` shows the number of items without a price. The total may cover only
+  priced items, rather than every item visible in the image.
+- If a new scan detects no items, the quantities and total reset to zero.
 
-## Train và đánh giá trên Colab
+## Training and evaluation on Colab
 
-Xem [Detection/README.md](Detection/README.md) để chạy các file theo thứ tự trong
-cùng runtime. Thư mục mang tên Detection nhưng cấu hình là **instance segmentation**.
+See [Detection/README.md](Detection/README.md) for running the scripts in order
+within the same runtime. Although the folder is named Detection, the configured
+task is **instance segmentation**.
 
-| Phần | Chức năng |
+| Section | Purpose |
 |---|---|
-| 00–01 | Cài từ requirements.txt, kiểm tra GPU và mount Google Drive |
-| 02–03 | Chia nhóm nguồn, kiểm tra ảnh/polygon, sao lưu dataset |
-| 04 | Train hoặc resume checkpoint chưa hoàn tất |
-| 05–06 | Xem biểu đồ và đánh giá best.pt trên tập test |
-| 07–08 | Tải model; liệt kê checkpoint theo epoch |
+| 00–01 | Install requirements, check the GPU, and mount Google Drive |
+| 02–03 | Split by source group, validate images/polygons, and back up the dataset |
+| 04 | Train or resume an unfinished checkpoint |
+| 05–06 | View plots and evaluate best.pt on the test split |
+| 07–08 | Download the model and list epoch checkpoints |
 
-| Cấu hình lượt train hiện tại | Giá trị |
+| Current training configuration | Value |
 |---|---|
-| Model khởi tạo | `yolo26l-seg.pt` pretrained |
-| Số lớp | 31 |
-| Snapshot sử dụng | 904 ảnh: train 720 / val 88 / test 96 |
-| Epoch tối đa / patience | 100 / 20 |
-| Kích thước train | 640 |
-| Batch | AutoBatch, mục tiêu 70% VRAM |
-| Optimizer / learning rate ban đầu | AdamW / 0.0005 |
-| Lưu checkpoint định kỳ | Mỗi 5 epoch, thêm best.pt và last.pt |
+| Starting model | Pretrained `yolo26l-seg.pt` |
+| Classes | 31 |
+| Dataset snapshot | 904 images: train 720 / val 88 / test 96 |
+| Maximum epochs / patience | 100 / 20 |
+| Training image size | 640 |
+| Batch | AutoBatch, targeting 70% VRAM |
+| Optimizer / initial learning rate | AdamW / 0.0005 |
+| Periodic checkpoints | Every 5 epochs, in addition to best.pt and last.pt |
 
-Kiểm tra dữ liệu đang cố định theo snapshot cũ và hash tương ứng. Ảnh bổ sung
-trong MoreData chưa tự được đưa vào lượt train này. Khi đổi dataset cần cập nhật
-snapshot cùng các kiểm tra số ảnh, lớp và hash liên quan.
+Dataset checks are fixed to the existing snapshot and its hashes. Additional
+images in MoreData are not automatically included in this run. When changing
+the dataset, update the snapshot and its image count, class, and hash checks.
 
-Model được lưu trên Drive tại:
+Model checkpoints are saved on Drive at:
 
 ```text
 MyDrive/YOLO_Grocerystuffs/runs/Grocerystuffs_Seg_20261029/weights/
@@ -215,35 +225,40 @@ MyDrive/YOLO_Grocerystuffs/runs/Grocerystuffs_Seg_20261029/weights/
 └── last.pt
 ```
 
-Nếu runtime bị ngắt, khôi phục môi trường/dataset theo phần 00–03 rồi chạy 04
-để resume. Lượt train đã hoàn tất sẽ bị chặn chạy lại trong cùng thư mục.
+If the runtime disconnects, restore the environment and dataset using sections
+00–03, then run section 04 to resume. The script prevents restarting a completed
+run in the same output directory.
 
-> **[TODO VIDEO 03 — TRAIN / RESUME, TÙY CHỌN, 20–30 GIÂY]**
+> **[TODO VIDEO 03 — TRAINING / RESUME, OPTIONAL, 20–30 SECONDS]**
 >
-> **Chèn link video ngay dưới ghi chú này nếu cần trình bày quy trình.** Quay
-> bảng split sau kiểm tra dữ liệu, log train và thư mục weights có checkpoint.
-> Nếu minh hoạ resume, quay epoch tiếp tục của một lượt thực sự bị gián đoạn;
-> không cần chạy lại training chỉ để quay video.
+> **Insert the video link below this note if you want to present the workflow.**
+> Record the split summary after dataset validation, training logs, and the
+> weights folder containing checkpoints. For a resume demonstration, show the
+> continuing epoch of a run that was actually interrupted; there is no need to
+> repeat training solely to record a video.
 
-<!-- TODO VIDEO 03: link video train/resume; có thể bỏ mục này nếu không quay. -->
+<!-- TODO VIDEO 03: add a training/resume video link, or omit this optional block. -->
 
-## Giới hạn hiện tại
+## Current limitations
 
-- Vật bị bỏ sót hoặc nhầm lớp sẽ làm số lượng và tổng tiền sai. Đây là demo
-  tính tiền từ nhận diện.
-- Bảng tiền lấy một lần suy luận ở thời điểm cập nhật, chưa tổng hợp nhiều
-  khung để xác nhận hay theo dõi giỏ hàng.
-- Bỏ khung cũ giảm trễ do hàng chờ, không bảo đảm mọi nguồn video đều hết trễ.
-- Model lớn chạy CPU có thể cho FPS thấp; không có một mức FPS bảo đảm cho mọi máy.
-- Checkpoint và dataset cần được cung cấp riêng khi chia sẻ dự án.
+- Missed detections or incorrect classes affect counts and totals. This is a
+  demonstration of pricing based on visual recognition.
+- The pricing panel uses a single inference result at each refresh. It does not
+  combine multiple frames for confirmation or track a shopping basket.
+- Dropping old frames reduces queue delays but does not eliminate every source
+  of video latency.
+- A large model may run at a low FPS on a CPU; performance varies across machines.
+- Checkpoints and datasets must be supplied separately when sharing the project.
 
-## Gắn video và đưa lên GitHub
+## Adding videos and publishing to GitHub
 
-Sau khi quay, chỉnh README trên GitHub, tải clip vào phần soạn thảo hoặc dán link
-video đã lưu rồi thay các khối `TODO VIDEO` tương ứng. Video 01 là demo chính;
-video 02 minh hoạ điện thoại; video 03 chỉ cần nếu trình bày phần huấn luyện.
-Nếu host video bên ngoài, giữ link truy cập được cho người xem repository.
+After recording, edit the README on GitHub, upload a clip in the editor or paste
+an accessible video link, and replace the corresponding `TODO VIDEO` blocks.
+Video 01 is the main demo, video 02 demonstrates the phone camera, and video 03
+is optional for presenting training. If hosting videos elsewhere, keep the
+links accessible to repository viewers.
 
-Trước khi commit, xem danh sách file chuẩn bị đưa lên. `.gitignore` loại dataset,
-NDJSON có URL ký số, model, `.venv` và kết quả train. Những file đã từng được Git
-theo dõi không tự bị gỡ khỏi lịch sử khi thêm vào `.gitignore`.
+Before committing, review the files to be published. `.gitignore` excludes
+datasets, NDJSON files containing signed URLs, model weights, `.venv`, and
+training outputs. Adding a file to `.gitignore` does not remove it from Git
+history if it was already tracked.
