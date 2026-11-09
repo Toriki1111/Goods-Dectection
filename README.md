@@ -10,15 +10,6 @@ exported as NDJSON, then prepared and used for training on Google Colab.
 
 ## Demo videos
 
-> **[TODO VIDEO 01 — MAIN DEMO, 30–60 SECONDS]**
->
-> **Insert the video link below this note.** Record both the camera view and the
-> pricing panel. Place 2–3 supported products in view, hold them still until the
-> 10-second update, then add or remove an item and wait for the next update.
-> Show the boxes/masks, product names, quantities, unit prices, line totals, and
-> grand total clearly. Verify the calculation against `cam_test/prices.json`
-> using the prices configured when recording.
-
 https://github.com/user-attachments/assets/484366f0-63cc-4303-81c4-83253242a1fe
 
 ## Features
