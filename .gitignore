@@ -1,0 +1,48 @@
+# Python environment and generated caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Local code tests (kept on this machine, excluded from publication)
+test_*.py
+
+# Datasets and exports (NDJSON URLs can contain signed access parameters)
+data/
+datasets/
+MoreData/
+Ultralytics/
+fruits_upload/
+fruit_upload/
+robot_raw_upload/
+*.ndjson
+*.jsonl
+*.zip
+*.cache
+.colab_source_cells.json
+
+# Model weights and generated training/evaluation files
+runs/
+exports/
+weights/
+*.pt
+*.pth
+*.onnx
+*.engine
+*.tflite
+*.torchscript
+docs/reviews/
+
+# Credentials and machine-specific settings
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+token.json
+.DS_Store
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,12 @@
+# Shared dependencies for dataset preparation, webcam inference and Colab cells.
+# Colab supplies google.colab; do not install that package on Windows.
+# For NVIDIA acceleration, select the appropriate PyTorch CUDA build separately.
+ultralytics==8.4.183
+torch>=2.6
+numpy>=1.23
+opencv-python>=4.6,<6
+Pillow>=10
+PyYAML>=6
+aiohttp>=3.9
+requests>=2.31
+ipython>=8
