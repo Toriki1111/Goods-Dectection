@@ -220,16 +220,6 @@ If the runtime disconnects, restore the environment and dataset using sections
 00–03, then run section 04 to resume. The script prevents restarting a completed
 run in the same output directory.
 
-> **[TODO VIDEO 03 — TRAINING / RESUME, OPTIONAL, 20–30 SECONDS]**
->
-> **Insert the video link below this note if you want to present the workflow.**
-> Record the split summary after dataset validation, training logs, and the
-> weights folder containing checkpoints. For a resume demonstration, show the
-> continuing epoch of a run that was actually interrupted; there is no need to
-> repeat training solely to record a video.
-
-<!-- TODO VIDEO 03: add a training/resume video link, or omit this optional block. -->
-
 ## Current limitations
 
 - Missed detections or incorrect classes affect counts and totals. This is a
