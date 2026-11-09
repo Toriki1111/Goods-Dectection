@@ -12,6 +12,8 @@ exported as NDJSON, then prepared and used for training on Google Colab.
 
 https://github.com/user-attachments/assets/484366f0-63cc-4303-81c4-83253242a1fe
 
+As you can see the cam is very lag because I am using my laptop without GPU, so the performance was so bad. You can use a better laptop or PC with a VGA on it 
+to improve the performance.
 ## Features
 
 - Detect multiple products in one frame and display their boxes and masks.
