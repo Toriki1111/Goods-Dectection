@@ -235,16 +235,3 @@ run in the same output directory.
   of video latency.
 - A large model may run at a low FPS on a CPU; performance varies across machines.
 - Checkpoints and datasets must be supplied separately when sharing the project.
-
-## Adding videos and publishing to GitHub
-
-After recording, edit the README on GitHub, upload a clip in the editor or paste
-an accessible video link, and replace the corresponding `TODO VIDEO` blocks.
-Video 01 is the main demo, video 02 demonstrates the phone camera, and video 03
-is optional for presenting training. If hosting videos elsewhere, keep the
-links accessible to repository viewers.
-
-Before committing, review the files to be published. `.gitignore` excludes
-datasets, NDJSON files containing signed URLs, model weights, `.venv`, and
-training outputs. Adding a file to `.gitignore` does not remove it from Git
-history if it was already tracked.
