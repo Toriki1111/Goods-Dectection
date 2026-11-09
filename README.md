@@ -19,7 +19,7 @@ exported as NDJSON, then prepared and used for training on Google Colab.
 > grand total clearly. Verify the calculation against `cam_test/prices.json`
 > using the prices configured when recording.
 
-<!-- TODO VIDEO 01: replace the note above with a link to the recorded main demo. -->
+https://github.com/user-attachments/assets/484366f0-63cc-4303-81c4-83253242a1fe
 
 ## Features
 
