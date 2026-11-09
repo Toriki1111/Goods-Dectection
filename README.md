@@ -44,9 +44,11 @@ flowchart LR
     E --> F
 ```
 
-Phone video capture keeps a single pending frame, replacing it whenever a newer
+Video capture keeps a single pending frame, replacing it whenever a newer
 frame arrives. This reduces waiting for old frames; model inference speed still
 depends on the hardware, input size, and image content.
+
+https://github.com/user-attachments/assets/b7a2fce6-f393-49d6-9228-c2fe98c7f4e4
 
 ## Project structure
 
