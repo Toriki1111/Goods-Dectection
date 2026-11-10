@@ -11,6 +11,8 @@ from urllib.parse import urlsplit
 
 import cv2
 from ultralytics import YOLO
+from receipts import SNAPSHOT_PREFIX, freeze_bill
+from camera_devices import resolve_device
 
 
 def parse_camera_source(value):
@@ -24,7 +26,7 @@ def parse_camera_source(value):
 
 
 class LatestFrameCamera:
-    """Drain a phone stream continuously; replace stale frames instead of queuing them."""
+    """Read a live camera continuously; replace stale frames instead of queuing them."""
 
     def __init__(self, camera):
         self.camera = camera
@@ -167,19 +169,28 @@ def main():
     parser.add_argument('--imgsz', type=int, default=480,
                         help='Model input size (default: 480). Try 320 for speed or 640 for detail.')
     parser.add_argument('--device', default='cpu')
+    parser.add_argument('--preview', action='store_true', help='Preview camera without loading YOLO.')
+    parser.add_argument('--camera-id', help='System device identifier supplied by the camera picker.')
     parser.add_argument('--prices', type=Path, default=Path(__file__).with_name('prices.json'))
     parser.add_argument('--model', type=Path, default=Path(__file__).resolve().parents[1] / 'best_grocery.pt')
     args = parser.parse_args()
-    if not args.model.is_file():
+    selected_device = None
+    if args.camera_id:
+        try:
+            selected_device = resolve_device(args.camera_id)
+            args.camera = selected_device['index']
+        except (ValueError, OSError) as exc:
+            parser.error(str(exc))
+    if not args.preview and not args.model.is_file():
         parser.error(f'Model not found: {args.model}')
     if not 0 <= args.conf <= 1 or args.imgsz <= 0:
         parser.error('conf must be in [0, 1] and imgsz must be positive')
     try:
-        prices = load_prices(args.prices)
+        prices = {} if args.preview else load_prices(args.prices)
     except (OSError, ValueError) as exc:
         parser.error(f'Cannot load prices: {exc}')
 
-    model = YOLO(str(args.model))
+    model = None if args.preview else YOLO(str(args.model))
     snapshot = DetectionCounts()
     if isinstance(args.camera, str):
         camera = cv2.VideoCapture(args.camera, cv2.CAP_FFMPEG, [
@@ -187,8 +198,8 @@ def main():
             cv2.CAP_PROP_READ_TIMEOUT_MSEC, 5000,
         ])
     else:
-        camera = cv2.VideoCapture(args.camera, cv2.CAP_DSHOW)
-        if not camera.isOpened():
+        camera = cv2.VideoCapture(args.camera, selected_device['backend'] if selected_device else cv2.CAP_DSHOW)
+        if not camera.isOpened() and selected_device is None:
             camera.release()
             camera = cv2.VideoCapture(args.camera)
     try:
@@ -197,14 +208,16 @@ def main():
         if isinstance(args.camera, int):
             camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
             camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-        else:
-            camera = LatestFrameCamera(camera)
-            print('Phone mode: continuously receiving video, processing newest frames only.')
+        camera = LatestFrameCamera(camera)
+        print('Live camera: continuously receiving video, processing newest frames only.')
         print('Camera started. Press Q or Escape in the preview window to exit.')
-        print(f'Model: {args.model} | device: {args.device} | imgsz: {args.imgsz} | conf: {args.conf}')
         print(f'Camera source: {args.camera}')
-        print('Object counts refresh every 10 seconds from the current frame (not cumulative).')
-        print(f'Demo prices: {args.prices} | unpriced objects are excluded from total.')
+        if args.preview:
+            print('Camera preview active. YOLO is not loaded. Close preview before starting detection.')
+        else:
+            print(f'Model: {args.model} | device: {args.device} | imgsz: {args.imgsz} | conf: {args.conf}')
+            print('Object counts refresh every 10 seconds from the current frame (not cumulative).')
+            print(f'Demo prices: {args.prices} | unpriced objects are excluded from total.')
 
         cv2.namedWindow('Grocerystuffs - Webcam', cv2.WINDOW_NORMAL)
         cv2.resizeWindow('Grocerystuffs - Webcam', 1280, 720)
@@ -213,10 +226,18 @@ def main():
             ok, frame = camera.read()
             if not ok:
                 raise RuntimeError('Cannot read a frame from the camera.')
+            if args.preview:
+                cv2.imshow('Grocerystuffs - Webcam', frame)
+                if cv2.waitKey(1) & 0xFF in (ord('q'), ord('Q'), 27):
+                    break
+                if cv2.getWindowProperty('Grocerystuffs - Webcam', cv2.WND_PROP_VISIBLE) < 1:
+                    break
+                continue
             started = time.perf_counter()
             result = model.predict(frame, imgsz=args.imgsz, conf=args.conf, device=args.device, verbose=False)[0]
             now = time.monotonic()
-            if snapshot.updated_at is None or now - snapshot.updated_at >= snapshot.interval:
+            snapshot_due = snapshot.updated_at is None or now - snapshot.updated_at >= snapshot.interval
+            if snapshot_due:
                 class_ids = result.boxes.cls.cpu().tolist() if result.boxes is not None else []
                 snapshot.update(class_ids, now)
             preview = result.plot()
@@ -224,6 +245,9 @@ def main():
             cv2.putText(preview, f'{fps:.1f} inference FPS | Q: quit', (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
             preview = draw_counts(preview, result.names, snapshot, now, prices)
             cv2.imshow('Grocerystuffs - Webcam', preview)
+            if snapshot_due:
+                bill = freeze_bill(*calculate_bill(snapshot.counts, result.names, prices))
+                print(SNAPSHOT_PREFIX + json.dumps(bill, ensure_ascii=True), flush=True)
             if cv2.waitKey(1) & 0xFF in (ord('q'), ord('Q'), 27):
                 break
             if cv2.getWindowProperty('Grocerystuffs - Webcam', cv2.WND_PROP_VISIBLE) < 1:

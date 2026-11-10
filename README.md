@@ -21,7 +21,7 @@ You can use a better laptop or PC with a VGA on it to improve the performance (i
 - Show quantities, unit prices, line totals, and a grand total in VND.
 - Populate the pricing panel on the first detection, then refresh every 10 seconds.
 - Receive video from a webcam or a DroidCam stream over Wi-Fi.
-- Continuously read phone video and keep only the latest pending frame for YOLO
+- Continuously read webcam or phone video and keep only the latest pending frame for YOLO
   to reduce delays caused by a backlog of older frames.
 - Train, save checkpoints, resume interrupted runs, and evaluate boxes/masks on Colab.
 
@@ -44,7 +44,7 @@ flowchart LR
     E --> F
 ```
 
-Video capture keeps a single pending frame, replacing it whenever a newer
+Live video capture keeps a single pending frame, replacing it whenever a newer
 frame arrives. This reduces waiting for old frames; model inference speed still
 depends on the hardware, input size, and image content.
 
@@ -66,6 +66,9 @@ CV_AI/
 │   ├── 08_list_checkpoints.py
 │   └── README.md
 ├── cam_test/
+│   ├── camera_app.py              # Camera connection picker
+│   ├── camera_devices.py          # Named Windows camera discovery
+│   ├── open_app.cmd               # Open the Windows picker
 │   ├── webcam.py                  # Video capture, inference, counting, and pricing
 │   ├── prices.json                # Unit prices in VND, keyed by class name
 │   ├── run.cmd                    # Windows launcher
@@ -99,6 +102,56 @@ same 31 labeled product classes. After training on Colab, download `best.pt`
 and rename the local copy to `best_grocery.pt`.
 
 ## Run with a computer webcam
+
+### Camera selection app
+
+Launch the small Windows camera picker:
+
+```powershell
+.\cam_test\open_app.cmd
+```
+
+- **Device camera:** select a detected system camera by name, such as Integrated
+  Webcam, DroidCam Video, or OBS Virtual Camera. Click **Refresh** after plugging
+  in or unplugging a device. The picker does not open cameras while listing them.
+- **Phone camera / IP (DroidCam):** connect both devices to the same Wi-Fi network, or
+  connect the computer to the phone hotspot. Enter the IP and port shown in
+  DroidCam (default port `4747`). Using a phone hotspot requires no router.
+
+Both network setups use the same HTTP video connection, not Bluetooth.
+Keep DroidCam open on the phone and exit its PC client when using a direct URL.
+Click **Preview camera** to check video without loading YOLO. Close that video
+window or click **Stop** before starting **YOLO**. Only one camera session runs
+at a time; video and the pricing panel use the existing OpenCV window.
+
+The app remembers the selected device identifier and last mode/IP/port locally in
+`cam_test/camera_settings.json`, which is excluded from Git. Invalid addresses
+and connection/model failures are reported in the picker. This interface does
+not increase inference FPS or separate live display from model inference.
+
+Device selection is remembered by its system identifier. If a saved device is
+disconnected, select another camera or reconnect it and click **Refresh**.
+The app rechecks the identifier before capture and does not silently switch to
+another device when its numeric index changes. CLI users may still use
+`--camera 0`, while the picker handles device names automatically.
+
+### Export a PDF receipt
+
+Start YOLO from the picker and wait for a nonempty scan. Click **Export invoice
+PDF**, choose a filename, and save. The app freezes the latest received
+10-second scan when you click, before opening the save dialog. The picker shows
+its scan time and total; subsequent scans do not modify the saved PDF.
+
+Each PDF includes a unique invoice ID, scan/export timestamps, product names,
+quantities, unit prices, line totals, and the total in VND. Unpriced items are
+listed as excluded; an all-unpriced scan has a zero priced-item total. Empty
+scans cannot be exported. This is a demo receipt based on model predictions.
+
+The default save folder is `exports/receipts/` (excluded from Git); another
+location may be selected. Install the updated `requirements.txt` for ReportLab.
+No camera image or video is included in the receipt.
+
+### Command-line launch
 
 ```powershell
 .\cam_test\run.cmd --camera 0

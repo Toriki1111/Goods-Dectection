@@ -43,6 +43,8 @@ docs/reviews/
 *.key
 credentials.json
 token.json
+cam_test/camera_settings.json
+cam_test/camera_settings.tmp
 .DS_Store
 Thumbs.db
 Desktop.ini
