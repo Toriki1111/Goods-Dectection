@@ -1,5 +1,10 @@
 # Các phần code từ Colab
 
+> Notebook `Grocerystuffs_Train.ipynb` ở gốc dự án hiện đã có thêm **cell 6
+> FINE-TUNE** (100 epoch, patience 20). Các file 00–08 dưới đây giữ luồng cũ;
+> `06_test_model.py` vẫn là đánh giá test, không phải fine-tune. Xem README gốc
+> để chọn đúng luồng; không trộn số cell của hai cách dùng.
+
 Tách từ notebook `Grocerystuffs_Train.ipynb` đang mở trên Colab ngày 09/11/2026.
 Mỗi file tương ứng một ô code. Thư mục tên Detection; cấu hình bên trong vẫn là
 **YOLO26l-seg**, 31 lớp Grocerystuffs, như notebook gốc.

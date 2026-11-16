@@ -73,7 +73,7 @@ CV_AI/
 │   ├── prices.json                # Unit prices in VND, keyed by class name
 │   ├── run.cmd                    # Windows launcher
 │   └── run_phone.cmd              # Launcher accepting the phone IP address
-├── Grocerystuffs_Train.ipynb       # Local notebook saved before splitting into scripts
+├── Grocerystuffs_Train.ipynb       # Colab notebook, including optional cell 6 fine-tune
 ├── CommonThings_Resume.ipynb      # Legacy CommonThings notebook
 ├── prepare_commonthings.py        # Legacy CommonThings utility
 ├── requirements.txt
@@ -239,9 +239,100 @@ If a scan detects two Coca cans and one Pepsi can, the total is:
 
 ## Training and evaluation on Colab
 
-See [Detection/README.md](Detection/README.md) for running the scripts in order
-within the same runtime. Although the folder is named Detection, the configured
-task is **instance segmentation**.
+### Open the Jupyter notebook
+
+Open [Grocerystuffs_Train.ipynb](Grocerystuffs_Train.ipynb) using
+[Google Colab](https://colab.research.google.com/github/Toriki1111/Goods-Dectection/blob/main/Grocerystuffs_Train.ipynb),
+then save a copy to your Drive before editing. Alternatively, upload the `.ipynb`
+file through **File → Upload notebook** in Colab. GitHub only previews the code;
+it does not run training. The notebook uses `google.colab` for Drive and downloads,
+so its current workflow is intended for Colab rather than local Jupyter/VS Code.
+
+Select a GPU under **Runtime → Change runtime type**, then connect. Run one cell
+at a time using its play button or **Shift+Enter**, waiting for it to finish.
+Do not use **Run all**: cell 6 starts an optional new fine-tune, not a required
+step after the original training. Published notebooks have saved outputs cleared;
+this does not remove code or change checkpoints stored on your Drive.
+
+| Notebook cell | Purpose / when to run |
+|---|---|
+| 0 | Install the notebook's training dependencies |
+| 1 | Check GPU, mount Drive, and locate the original NDJSON snapshot |
+| 2–3 | Prepare/restore and validate the original segmentation dataset |
+| 4 | Train the original model or resume its interrupted run |
+| 5 | View plots from the original run |
+| **6 — FINE-TUNE (optional)** | Start a new run from the old best.pt using a separately prepared old + new dataset |
+| 7 | Evaluate the **original** best.pt on the original test split |
+| 8 | Download the **original** best.pt |
+| 9 | List original epoch checkpoints and sizes; does not delete anything |
+
+### Fine-tune with additional data: cell 6
+
+1. Prepare the combined old + new dataset first. If the new NDJSON already
+   contains old images, use it as the combined source rather than appending the
+   old export again. Review duplicates and labels, preserve class IDs/order,
+   and keep evaluation images/source groups out of training.
+2. Convert that source into downloaded images, YOLO **segmentation** labels and
+   `data.yaml`. Cell 6 consumes this YAML, not an NDJSON file. Adding files to
+   `MoreData` or Drive alone does not update a training dataset.
+3. Run cell 0 and mount Drive using cell 1. Cell 1 still checks the original
+   snapshot; replacing its NDJSON with a new export will fail its fixed hash/count
+   checks. Cells 2–3 prepare the old dataset, not your additional data.
+4. In cell 6, set `FT_SOURCE_PT` to the old segmentation checkpoint and
+   **`FT_DATA_YAML` to the combined dataset's actual YAML path**. The default
+   expected path is `MyDrive/YOLO_Grocerystuffs/datasets/grocerystuffs_finetune/data.yaml`.
+   This separate dataset is not created by cell 6. Its image/label paths must be
+   valid in the current Colab runtime.
+5. Run cell 6 only when ready. It verifies segmentation and the exact class-name
+   mapping, then trains for up to **100 epochs**, with **patience 20**, image size
+   **640**, AutoBatch at **70% VRAM**, and AdamW at **lr0=0.0001**.
+
+This is a new training run initialized from learned weights (`resume=False`).
+It writes to `MyDrive/YOLO_Grocerystuffs/runs/Grocerystuffs_Finetune_<timestamp>/`
+and keeps the original run. The resulting paths are **`FT_BEST_PT`** and
+**`FT_LAST_PT`**. Normal checkpoint saving updates last.pt each completed epoch
+and best.pt when validation improves; extra periodic epoch files are disabled.
+The provenance file records checkpoint/YAML hashes; the YAML hash is not a hash
+of all dataset images and labels.
+
+**Rerunning cell 6 starts another new run.** To continue an interrupted fine-tune,
+restore the environment and dataset, find that run's unstripped `last.pt` on
+Drive, and resume that checkpoint rather than rerunning cell 6 or original cell 4:
+
+```python
+from pathlib import Path
+from ultralytics import YOLO
+
+FT_DATA_YAML = Path("/path/to/the/restored/combined/data.yaml")
+ft_resume = YOLO("/path/to/the/interrupted/finetune/weights/last.pt")
+ft_resume.train(resume=True, data=str(FT_DATA_YAML), device=0, workers=2)
+```
+
+Completed runs may have optimizer state removed and cannot be resumed this way.
+Cells 7 and 8 remain pointed at the original model. To evaluate/download the
+fine-tuned model after it finishes, use the explicit fine-tune paths in separate
+cells (the combined YAML must define a held-out test split for this example):
+
+```python
+ft_test = YOLO(str(FT_BEST_PT)).val(
+    data=str(FT_DATA_YAML), split="test", imgsz=640, batch=4, device=0
+)
+```
+
+```python
+from google.colab import files
+files.download(str(FT_BEST_PT))
+```
+
+Keep the same held-out set when comparing original and fine-tuned models. Use
+validation for development and reserve test evaluation for the final comparison.
+
+### Alternative: separate Python cell scripts
+
+See [Detection/README.md](Detection/README.md) for the older 00–08 scripts, run
+with `%run -i` in the same Colab runtime. Their numbering differs from the
+updated notebook; they do **not** include its optional fine-tune cell 6. Although
+the folder is named Detection, the configured task is **instance segmentation**.
 
 | Section | Purpose |
 |---|---|
