@@ -8,6 +8,9 @@ configurable price list.
 The current model has **31 product classes**. Images are labeled in Ultralytics,
 exported as NDJSON, then prepared and used for training on Google Colab.
 
+For a detailed explanation in Vietnamese, see
+[Architecture and how YOLO learns from data](architect.md).
+
 ## Demo videos
 
 https://github.com/user-attachments/assets/484366f0-63cc-4303-81c4-83253242a1fe
